@@ -1,0 +1,15 @@
+typer
+boto3
+rich
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+apscheduler
+requests
+python-dotenv
+structlog
+pyyaml
+pytest
+redis
+rq
