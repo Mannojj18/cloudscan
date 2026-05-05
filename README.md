@@ -1,4 +1,4 @@
-# CloudFriend3
+# CloudScan
 
 CloudFriend3 is an asynchronous cloud intelligence and governance platform designed to help engineering teams monitor AWS infrastructure, detect underutilized resources, estimate cloud cost, track historical trends, and improve cloud visibility.
 

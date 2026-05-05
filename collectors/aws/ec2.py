@@ -1,48 +1,53 @@
-
 import boto3
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 def fetch_region(region):
     ec2 = boto3.client("ec2", region_name=region)
     output = []
 
     try:
-        response = ec2.describe_instances()
+        paginator = ec2.get_paginator("describe_instances")
 
-        for reservation in response.get("Reservations", []):
-            for instance in reservation.get("Instances", []):
+        pages = paginator.paginate()
+        for page in pages:
+            for reservation in page.get("Reservations", []):
+                for instance in reservation.get("Instances", []):
 
-                tags = {
-                    t["Key"]: t["Value"]
-                    for t in instance.get("Tags", [])
-                }
+                    tags = {
+                        t["Key"]: t["Value"]
+                        for t in instance.get("Tags", [])
+                    }
 
-                output.append({
-                    "instance_id": instance.get("InstanceId"),
-                    "instance_type": instance.get("InstanceType"),
-                    "launch_time": str(instance.get("LaunchTime")),
-                    "region": region,
-                    "name": tags.get("Name", "Unnamed"),
-                    "owner": tags.get("Owner", "unknown"),
-                    "environment": tags.get("Environment", "unknown")
-                })
+                    output.append({
+                        "instance_id": instance.get("InstanceId"),
+                        "instance_type": instance.get("InstanceType"),
+                        "launch_time": instance.get("LaunchTime").isoformat(),
+                        "region": region,
+                        "name": tags.get("Name", "Unnamed"),
+                        "owner": tags.get("Owner", "unknown"),
+                        "environment": tags.get("Environment", "unknown")
+                    })
 
-    except Exception:
-        return []
+    except Exception as e:
+        print(f"[ERROR] Region {region}: {e}")  # ✅ visible debugging
 
     return output
 
+
 def fetch_ec2_instances():
     session = boto3.session.Session()
-    # regions = session.get_available_regions("ec2")
-    regions = ["eu-north-1"]
+
+  
+    regions = ["eu-north-1", "ap-south-1", "us-east-1"]  # Mumbai (safe region for you)
 
     output = []
 
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        results = executor.map(fetch_region, regions)
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(fetch_region, r) for r in regions]
 
-    for result in results:
-        output.extend(result)
+        for future in as_completed(futures):
+            result = future.result()
+            output.extend(result)
 
     return output
